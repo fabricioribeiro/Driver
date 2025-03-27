@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Editar Abastecimento</h2>
+    
+    <form method="POST" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Data</label>
+                <input type="date" name="data" value="{{ abast.data.strftime('%Y-%m-%d') }}" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Veículo</label>
+                <select name="veiculo_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    {% for v in veiculos %}
+                        <option value="{{ v.id }}" {{ 'selected' if v.id == abast.veiculo_id }}>{{ v.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Odômetro</label>
+                <input type="number" step="0.1" name="odometro" value="{{ abast.odometro }}" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Litros</label>
+                <input type="number" step="0.01" name="litros" value="{{ abast.litros }}" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Preço/L</label>
+                <input type="number" step="0.01" name="preco_litro" value="{{ abast.preco_litro }}" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+            Atualizar Abastecimento
+        </button>
+    </form>
+</div>
+{% endblock %}

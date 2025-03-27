@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 space-y-6">
+    <!-- Cabeçalho -->
+    <h2 class="text-2xl font-bold">Relatórios - {{ veiculo.nome }}</h2>
+    
+    <!-- Seção Financeira -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h3 class="text-xl font-bold mb-4">Resumo Financeiro</h3>
+        
+        <!-- Grid de métricas -->
+        <div class="grid grid-cols-3 gap-4 text-center mb-4">
+            <!-- Total Receitas -->
+            <div class="p-4 bg-green-50 rounded">
+                <p class="text-sm text-gray-600">Total Receitas</p>
+                <p class="text-2xl font-bold text-green-600">
+                    R$ {{ "%.2f"|format(veiculo.receitas|sum(attribute='valor')) }}
+                </p>
+            </div>
+            
+            <!-- Total Combustível -->
+            <div class="p-4 bg-red-50 rounded">
+                <p class="text-sm text-gray-600">Total Combustível</p>
+                <p class="text-2xl font-bold text-red-600">
+                    R$ {{ "%.2f"|format(abastecimentos|sum(attribute='total')) }}
+                </p>
+            </div>
+            
+            <!-- Saldo -->
+            <!-- Linha 31 (corrigida) -->
+<div class="p-4 {{ 'bg-blue-50' if saldo >= 0 else 'bg-yellow-50' }} rounded">
+    <p class="text-sm text-gray-600">Resultado Final</p>
+    <p class="text-2xl font-bold {{ 'text-blue-600' if saldo >= 0 else 'text-yellow-600' }}">
+        R$ {{ "%.2f"|format(saldo) }}  <!-- Removido parêntese extra -->
+    </p>
+</div>
+        </div>
+    </div>
+
+    <!-- Gráfico e Exportação -->
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Gráfico de Desempenho -->
+        <div class="border p-4 rounded">
+            <h3 class="text-lg font-semibold mb-4">Desempenho (km/litro)</h3>
+            {% if abastecimentos|length > 1 %}
+                <img src="{{ url_for('static', filename='img/grafico.png') }}" 
+                     alt="Gráfico de Desempenho" 
+                     class="w-full h-64 object-contain">
+            {% else %}
+                <p class="text-gray-500 text-center py-8">
+                    Adicione pelo menos 2 abastecimentos para gerar o gráfico
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- Exportação de Dados -->
+        <div class="border p-4 rounded">
+            <h3 class="text-lg font-semibold mb-4">Exportar Dados</h3>
+            <a href="{{ url_for('exportar_excel', veiculo_id=veiculo.id) }}" 
+               class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 block text-center mb-3">
+                Exportar para Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Histórico de Receitas -->
+    <div class="border p-4 rounded">
+        <h3 class="text-lg font-semibold mb-4">Histórico de Receitas</h3>
+        <table class="min-w-full divide-y divide-gray-200">
+            <!-- Cabeçalho da tabela -->
+            <thead>
+                <tr>
+                    <th class="px-6 py-3 bg-gray-50 text-left">Data</th>
+                    <th class="px-6 py-3 bg-gray-50 text-left">Descrição</th>
+                    <th class="px-6 py-3 bg-gray-50 text-left">Valor</th>
+                    <th class="px-6 py-3 bg-gray-50"></th>
+                </tr>
+            </thead>
+            
+            <!-- Corpo da tabela -->
+            <tbody>
+                {% for r in veiculo.receitas|sort(attribute='data', reverse=True) %}
+                <tr>
+                    <td class="px-6 py-4">{{ r.data.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-6 py-4">{{ r.descricao }}</td>
+                    <td class="px-6 py-4">R$ {{ "%.2f"|format(r.valor) }}</td>
+                    <td class="px-6 py-4">
+                        <a href="{{ url_for('delete_receita', id=r.id) }}" 
+                           class="text-red-600 hover:text-red-900">Excluir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

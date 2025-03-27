@@ -26,7 +26,7 @@
                 <p class="text-sm text-gray-500">Último Abastecimento</p>
                 <p class="text-2xl font-bold">
                     {% if abastecimentos %}
-                        {{ abastecimentos[0].data.strftime('%d/%m/%Y') }}
+                        {{ abastecimentos[-1].data.strftime('%d/%m/%Y') }}
                     {% else %}
                         N/A
                     {% endif %}
@@ -38,13 +38,24 @@
         </div>
     </div>
 
+    <!-- Correção principal: Cálculo seguro da média de consumo -->
     <div class="card bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500">Média de Consumo</p>
                 <p class="text-2xl font-bold">
                     {% if abastecimentos|length > 1 %}
-                        {{ "%.2f"|format((abastecimentos|sum(attribute='km_litro')/(abastecimentos|length -1)) if abastecimentos|length > 1 else 0) }} km/l
+                        {% set consumos = [] %}
+                        {% for i in range(1, abastecimentos|length) %}
+                            {% if abastecimentos[i].km_litro is not none %}
+                                {% set _ = consumos.append(abastecimentos[i].km_litro) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if consumos %}
+                            {{ "%.2f"|format(consumos|sum / consumos|length) }} km/l
+                        {% else %}
+                            N/A
+                        {% endif %}
                     {% else %}
                         N/A
                     {% endif %}
@@ -71,7 +82,7 @@
     </div>
 </div>
 
-<!-- Tabela de Abastecimentos -->
+<!-- Tabela de Abastecimentos (mantida integralmente) -->
 <div class="bg-white rounded-lg shadow-md overflow-hidden">
     <div class="p-4 border-b flex justify-between items-center">
         <h3 class="text-lg font-semibold">Histórico de Abastecimentos</h3>
@@ -104,7 +115,7 @@
                     <td class="px-6 py-4">R$ {{ "%.2f"|format(abast.preco_litro) }}</td>
                     <td class="px-6 py-4">R$ {{ "%.2f"|format(abast.total) }}</td>
                     <td class="px-6 py-4">
-                        {% if loop.index0 > 0 %}
+                        {% if loop.index0 > 0 and abast.km_litro is not none %}
                             {{ "%.2f"|format(abast.km_litro) }} km/l
                         {% else %}
                             -

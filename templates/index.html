@@ -1,67 +1,131 @@
 {% extends "base.html" %}
 
+{% block title %}Dashboard{% endblock %}
+
 {% block content %}
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="mb-6 flex justify-between items-center">
-            <h2 class="text-2xl font-bold">Histórico de Abastecimentos</h2>
-            <select onchange="window.location.href = '/?veiculo_id=' + this.value" 
-                    class="rounded-md border-gray-300 shadow-sm">
-                <option value="">Selecione um veículo</option>
-                {% for v in veiculos %}
-                    <option value="{{ v.id }}" {% if v.id == veiculo_id|int %}selected{% endif %}>{{ v.nome }}</option>
-                {% endfor %}
-            </select>
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-800">Resumo do Veículo</h2>
+        <select onchange="window.location.href = '/?veiculo_id=' + this.value" 
+                class="rounded-md border-gray-300 shadow-sm px-4 py-2">
+            <option value="">Selecione um veículo</option>
+            {% for v in veiculos %}
+                <option value="{{ v.id }}" {% if v.id == veiculo_id|int %}selected{% endif %}>
+                    {{ v.nome }} ({{ v.marca }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<!-- Cards de Métricas -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Último Abastecimento</p>
+                <p class="text-2xl font-bold">
+                    {% if abastecimentos %}
+                        {{ abastecimentos[0].data.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                <i class="bi bi-calendar-check text-xl"></i>
+            </div>
         </div>
-        
+    </div>
+
+    <div class="card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Média de Consumo</p>
+                <p class="text-2xl font-bold">
+                    {% if abastecimentos|length > 1 %}
+                        {{ "%.2f"|format((abastecimentos|sum(attribute='km_litro')/(abastecimentos|length -1)) if abastecimentos|length > 1 else 0) }} km/l
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                <i class="bi bi-speedometer2 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500">Gasto Total</p>
+                <p class="text-2xl font-bold">
+                    R$ {{ "%.2f"|format(abastecimentos|sum(attribute='total')) }}
+                </p>
+            </div>
+            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                <i class="bi bi-cash-stack text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Abastecimentos -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="p-4 border-b flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Histórico de Abastecimentos</h3>
+        <a href="{{ url_for('add_abastecimento') }}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center space-x-2">
+            <i class="bi bi-plus-lg"></i>
+            <span>Novo Abastecimento</span>
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
-            <thead>
+            <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Odômetro (km)</th>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Litros</th>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Preço/L (R$)</th>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Total (R$)</th>
-                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">Km/L</th>
-                    <th class="px-6 py-3 bg-gray-50"></th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odômetro</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Litros</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor/L</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km/L</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for abast in abastecimentos %}
-                <tr>
+                <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">{{ abast.data.strftime('%d/%m/%Y') }}</td>
-                    <td class="px-6 py-4">{{ abast.odometro }}</td>
-                    <td class="px-6 py-4">{{ abast.litros }}</td>
+                    <td class="px-6 py-4">{{ abast.odometro }} km</td>
+                    <td class="px-6 py-4">{{ abast.litros }} L</td>
                     <td class="px-6 py-4">R$ {{ "%.2f"|format(abast.preco_litro) }}</td>
-                    <td class="px-6 py-4">R$ {{ "%.2f"|format(abast.litros * abast.preco_litro) }}</td>
+                    <td class="px-6 py-4">R$ {{ "%.2f"|format(abast.total) }}</td>
                     <td class="px-6 py-4">
                         {% if loop.index0 > 0 %}
-                            {{ abast.km_litro }}
+                            {{ "%.2f"|format(abast.km_litro) }} km/l
                         {% else %}
                             -
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 space-x-2">
-                        <a href="{{ url_for('edit_abastecimento', id=abast.id) }}" 
-                           class="text-blue-600 hover:text-blue-900">Editar</a>
-                        <a href="{{ url_for('delete_abastecimento', id=abast.id) }}" 
-                           class="text-red-600 hover:text-red-900">Excluir</a>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex space-x-2">
+                            <a href="{{ url_for('edit_abastecimento', id=abast.id) }}" 
+                               class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <a href="{{ url_for('delete_abastecimento', id=abast.id) }}" 
+                               class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        
-        <div class="mt-6">
-            <a href="{{ url_for('add_abastecimento') }}" 
-               class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                + Novo Abastecimento
-            </a>
-        </div>
-        <div class="mt-4">
-            <a href="{{ url_for('relatorios', veiculo_id=veiculo_id) }}" 
-               class="bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700">
-                Ver Relatórios
-            </a>
-        </div>
     </div>
+</div>
 {% endblock %}

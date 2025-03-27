@@ -1,9 +1,3 @@
-"""
-Aplicação Flask para gestão de veículos, abastecimentos e receitas
-Autor: Sua Assistência AI
-Data: [Data]
-"""
-
 from flask import Flask, render_template, request, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -13,7 +7,7 @@ import io
 import os
 
 # Configuração inicial do Flask
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -95,6 +89,7 @@ def index():
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_abastecimento():
+    """Adiciona novo abastecimento"""
     veiculos = Veiculo.query.all()
     if request.method == 'POST':
         novo = Abastecimento(
@@ -111,6 +106,7 @@ def add_abastecimento():
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_abastecimento(id):
+    """Edita abastecimento existente"""
     abast = Abastecimento.query.get_or_404(id)
     veiculos = Veiculo.query.all()
     if request.method == 'POST':
@@ -125,6 +121,7 @@ def edit_abastecimento(id):
 
 @app.route('/delete/<int:id>')
 def delete_abastecimento(id):
+    """Remove abastecimento"""
     abast = Abastecimento.query.get_or_404(id)
     veiculo_id = abast.veiculo_id
     db.session.delete(abast)
@@ -133,6 +130,7 @@ def delete_abastecimento(id):
 
 @app.route('/veiculos', methods=['GET', 'POST'])
 def veiculos():
+    """Gerencia veículos cadastrados"""
     if request.method == 'POST':
         novo = Veiculo(
             nome=request.form['nome'],
@@ -146,6 +144,7 @@ def veiculos():
 
 @app.route('/receitas', methods=['GET', 'POST'])
 def receitas():
+    """Gerencia receitas"""
     veiculos = Veiculo.query.all()
     if request.method == 'POST':
         nova = Receita(
@@ -161,6 +160,7 @@ def receitas():
 
 @app.route('/delete_receita/<int:id>')
 def delete_receita(id):
+    """Remove receita"""
     receita = Receita.query.get_or_404(id)
     veiculo_id = receita.veiculo_id
     db.session.delete(receita)
@@ -169,6 +169,7 @@ def delete_receita(id):
 
 @app.route('/relatorios')
 def relatorios():
+    """Gera relatórios detalhados"""
     veiculo_id = request.args.get('veiculo_id')
     if not veiculo_id:
         return redirect(url_for('index'))
@@ -180,19 +181,30 @@ def relatorios():
     # Cálculo do saldo
     total_receitas = sum(r.valor for r in veiculo.receitas)
     total_combustivel = sum(a.total for a in abastecimentos)
-    saldo = total_receitas - total_combustivel  # Variável crítica!
+    saldo = total_receitas - total_combustivel
     
-    # Geração do gráfico
+    # Geração de gráfico
     if len(abastecimentos) > 1:
-        # ... (código do gráfico permanece igual)
-
-        return render_template('relatorios.html',
+        datas = [a.data.strftime('%d/%m') for a in abastecimentos[1:]]
+        km_litro = [a.km_litro for a in abastecimentos[1:]]
+        
+        plt.figure()
+        plt.plot(datas, km_litro, marker='o')
+        plt.title(f'Desempenho - {veiculo.nome}')
+        plt.xlabel('Data')
+        plt.ylabel('km/l')
+        plt.grid(True)
+        plt.savefig('static/img/grafico.png')
+        plt.close()
+    
+    return render_template('relatorios.html',
                          veiculo=veiculo,
                          abastecimentos=abastecimentos,
-                         saldo=saldo)  # Passando a variável para o template
+                         saldo=saldo)
 
 @app.route('/exportar/excel')
 def exportar_excel():
+    """Exporta dados para Excel"""
     veiculo_id = request.args.get('veiculo_id')
     abastecimentos = Abastecimento.query.filter_by(veiculo_id=veiculo_id).all()
     
@@ -201,7 +213,7 @@ def exportar_excel():
         'Odômetro': a.odometro,
         'Litros': a.litros,
         'Preço/L': a.preco_litro,
-        'Total': a.litros * a.preco_litro,
+        'Total': a.total,
         'km/l': getattr(a, 'km_litro', None)
     } for a in abastecimentos])
     
@@ -212,9 +224,8 @@ def exportar_excel():
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        download_name='relatorio_abastecimentos.xlsx'
+        download_name=f'relatorio_{veiculo_id}.xlsx'
     )
-
 
 if __name__ == '__main__':
     os.makedirs('static/img', exist_ok=True)
